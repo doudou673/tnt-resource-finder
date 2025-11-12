@@ -1,179 +1,152 @@
-# Backend Structure Document
+# Backend Structure Document for TNT Resource Finder
 
-This document outlines the backend architecture, hosting, and infrastructure for the **codeguide-starter** project. It uses plain language so anyone can understand how the backend is set up and how it supports the application.
+This document outlines the backend setup for the "Teens in Times (TNT) Resource Finder" project. It explains the architecture, data storage, APIs, hosting, infrastructure, security, monitoring, and maintenance in clear, everyday language.
 
 ## 1. Backend Architecture
 
-- **Framework and Design Pattern**
-  - We use **Next.js API Routes** to handle all server-side logic. These routes live alongside the frontend code in the same repository, making development and deployment simpler.
-  - The backend follows a **layered pattern**:
-    1. **API Layer**: Receives requests (login, registration, data fetch).  
-    2. **Service Layer**: Contains the core business logic (user validation, password hashing).  
-    3. **Data Access Layer**: Talks to the database via a simple ORM (e.g., Prisma or TypeORM).
+### Overall Design
+- We use Next.js both for the frontend and backend. The backend part lives in Next.js API routes (serverless functions).  
+- Business logic (search, create, update resources) is separated into clean modules, following a simple request→process→response pattern.  
+- Drizzle ORM handles all database interactions in a type-safe way, reducing errors in our queries.
 
-- **Scalability**
-  - Stateless API routes can scale horizontally—new instances can spin up on demand.  
-  - We can add caching or a message queue (e.g., Redis or RabbitMQ) without changing the core code.
-
-- **Maintainability**
-  - Code for each feature is grouped by route (authentication, dashboard).  
-  - A service layer separates complex logic from request handling.
-
-- **Performance**
-  - Lightweight Node.js handlers keep response times low.  
-  - Future use of database connection pooling and Redis for caching repeated queries.
+### Support for Scalability, Maintainability, and Performance
+- **Scalability**: Serverless functions on Vercel automatically scale up to handle more traffic.  
+- **Maintainability**: Clear folder structure (e.g., `app/api/`, `db/schema/`) keeps related code together. Using TypeScript and Drizzle’s types helps catch bugs early.  
+- **Performance**: Next.js Server Components fetch data on the server for fast, SEO-friendly pages. Vercel’s global CDN delivers responses close to users.
 
 ## 2. Database Management
 
-- **Database Choice**
-  - We recommend **PostgreSQL** for structured data and reliable transactions.  
-  - In-memory caching can be added later with **Redis** for session tokens or frequently read data.
+### Technologies Used
+- PostgreSQL (a SQL relational database)  
+- Drizzle ORM (type-safe interface for writing SQL queries)  
 
-- **Data Storage and Access**
-  - Use an ORM like **Prisma** or **TypeORM** to map JavaScript/TypeScript objects to database tables.
-  - Connection pooling ensures efficient use of database connections under load.
-  - Migrations track schema changes over time, keeping development, staging, and production in sync.
-
-- **Data Practices**
-  - Passwords are never stored in plain text—they are salted and hashed with **bcrypt** before saving.
-  - All outgoing data is typed and validated to prevent malformed records.
+### Data Structure and Practices
+- Data is organized into tables: `members`, `events`, and `resources`.  
+- Every table has a primary key (`id`). Relationships are enforced by foreign keys.  
+- We use Drizzle migrations to apply schema changes in a safe, repeatable way.  
+- Backups and migrations are part of our deployment process to protect data integrity.
 
 ## 3. Database Schema
 
-### Human-Readable Format
+### Human-Readable Overview
+1. **members** table  
+   • id (unique identifier)  
+   • name (member’s full name)  
+   • email (contact email)  
 
-- **Users**
-  - **id**: Unique identifier  
-  - **email**: User’s email address (unique)  
-  - **password_hash**: Securely hashed password  
-  - **created_at**: Account creation timestamp
+2. **events** table  
+   • id (unique identifier)  
+   • title (event name)  
+   • date (event date)  
 
-- **Sessions**
-  - **id**: Unique session record  
-  - **user_id**: Links to a user  
-  - **token**: Random string for authentication  
-  - **expires_at**: When the token stops working  
-  - **created_at**: When the session was created
-
-- **DashboardItems** *(optional for dynamic data)*
-  - **id**: Unique record  
-  - **title**: Item title  
-  - **content**: Item details  
-  - **created_at**: When the item was added
+3. **resources** table  
+   • id (unique identifier)  
+   • title (resource title)  
+   • url (link to the resource)  
+   • type (e.g., video, audio)  
+   • member_id (foreign key to members.id)  
+   • event_id (foreign key to events.id)
 
 ### SQL Schema (PostgreSQL)
 ```sql
--- Users table
-CREATE TABLE users (
+CREATE TABLE members (
   id SERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL
 );
 
--- Sessions table
-CREATE TABLE sessions (
+CREATE TABLE events (
   id SERIAL PRIMARY KEY,
-  user_id INT REFERENCES users(id) ON DELETE CASCADE,
-  token VARCHAR(255) UNIQUE NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  title VARCHAR(150) NOT NULL,
+  date DATE NOT NULL
 );
 
--- Dashboard items table
-CREATE TABLE dashboard_items (
+CREATE TABLE resources (
   id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  title VARCHAR(150) NOT NULL,
+  url TEXT NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  member_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE
 );
-```  
+```
 
 ## 4. API Design and Endpoints
 
-- **Approach**: We follow a **RESTful** style, grouping related endpoints under `/api` directories.
+### Approach
+- We follow a RESTful style using Next.js API routes.  
+- Endpoints live under `app/api`, each in its own folder with a `route.ts` file.  
 
-- **Key Endpoints**
-  - `POST /api/auth/register`  
-    • Accepts `{ email, password }`  
-    • Creates a new user and issues a session token  
-  - `POST /api/auth/login`  
-    • Accepts `{ email, password }`  
-    • Verifies credentials and returns a session token  
-  - `POST /api/auth/logout`  
-    • Invalidates the session token on the server  
-  - `GET /api/dashboard/data`  
-    • Requires a valid session  
-    • Returns user-specific data or dashboard items  
+### Key Endpoints and Their Purposes
+- **POST /api/auth/signup** and **POST /api/auth/signin** (Better Auth)  
+  • Handle user registration and login.  
 
-- **Communication**
-  - Frontend sends JSON requests; backend replies with JSON and appropriate HTTP status codes.  
-  - Protected routes check for a valid session token (in cookies or Authorization header).
+- **GET /api/search?query=[text]**  
+  • Searches resources by member name or event title. Returns a list of matching resources.  
+
+- **GET /api/resources**  
+  • Returns all resources (admin only).  
+
+- **POST /api/resources**  
+  • Creates a new resource entry (admin only).  
+
+- **PUT /api/resources/[id]**  
+  • Updates an existing resource (admin only).  
+
+- **DELETE /api/resources/[id]**  
+  • Deletes a resource (admin only).  
+
+- **GET /api/members** and **GET /api/events**  
+  • Provide lists of members and events for dropdowns or filtering in the UI.
 
 ## 5. Hosting Solutions
 
-- **Cloud Provider**:  
-  - **Vercel** (recommended) offers seamless Next.js deployments, auto-scaling, and built-in CDN.  
-  - Alternatively, **Netlify** or any Node.js-capable host will work.
+### Development Environment
+- **Docker** containers for PostgreSQL and local services.  
+- Ensures everyone on the team runs the same versions and configurations.
 
-- **Benefits**
-  - **Reliability**: Global servers and failover across regions.  
-  - **Scalability**: Auto-scale serverless functions based on traffic.  
-  - **Cost-Effectiveness**: Pay-per-use model means low cost for small projects.
+### Production Environment
+- **Vercel** for deploying the Next.js application.  
+  • Serverless functions power our API routes.  
+  • Built-in global CDN delivers frontend assets and API responses quickly.  
+  • Automatic deployments from the main Git branch.
+
+### Benefits
+- **Reliability**: Vercel and Docker both offer proven uptime and tooling.  
+- **Scalability**: Serverless functions grow with demand without manual setup.  
+- **Cost-Effectiveness**: Pay-as-you-go model on Vercel and minimal infrastructure management.
 
 ## 6. Infrastructure Components
 
-- **Load Balancer**
-  - Provided by the hosting platform—distributes API requests across function instances.
+- **Load Balancer**: Managed by Vercel—automatically distributes incoming requests.  
+- **CDN (Content Delivery Network)**: Vercel’s edge network caches static assets and API responses.  
+- **Caching**: Next.js ISR (Incremental Static Regeneration) caches pages for repeated requests.  
+- **Reverse Proxy & SSL**: Handled by Vercel for secure HTTPS connections.
 
-- **CDN (Content Delivery Network)**
-  - Vercel’s global edge network caches static assets (CSS, JS, images) for faster page loads.
-
-- **Caching**
-  - **Redis** (optional) for session storage or caching dashboard queries to reduce database load.
-
-- **Object Storage**
-  - For file uploads or backups, integrate with AWS S3 or similar services.
-
-- **Message Queue**
-  - In future, use **RabbitMQ** or **Kafka** for background tasks (e.g., email notifications).
+These pieces work together to reduce latency, handle large traffic spikes, and keep the service responsive.
 
 ## 7. Security Measures
 
-- **Authentication & Authorization**
-  - Passwords hashed with **bcrypt** and salted.  
-  - Session tokens stored in secure, HttpOnly cookies or Authorization headers.  
-  - Protected endpoints verify tokens before proceeding.
-
-- **Data Encryption**
-  - **HTTPS/TLS** encrypts data in transit.  
-  - Database connections use SSL to encrypt data between the app and the database.
-
-- **Input Validation**
-  - Every incoming request is validated (e.g., valid email format, password length) to prevent SQL injection or other attacks.
-
-- **Web Security Best Practices**
-  - Enable **CORS** policies to limit allowed origins.  
-  - Use **CSRF tokens** or same-site cookies to prevent cross-site requests.  
-  - Set secure headers with **Helmet** or a similar middleware.
+- **Authentication**: Better Auth handles secure sign-up, sign-in, and session management.  
+- **Authorization**: Role-based access control (RBAC) ensures only admins can add/edit resources.  
+- **Data Encryption**:  
+  • In transit: HTTPS everywhere via SSL.  
+  • At rest: PostgreSQL encryption options on the hosted database.  
+- **Input Validation & Sanitization**:  
+  • Zod schemas and React Hook Form on admin forms.  
+  • Server-side checks in API routes to prevent injection attacks.  
+- **Environment Variables**: Secrets (database URLs, auth keys) stored securely outside of code.
 
 ## 8. Monitoring and Maintenance
 
-- **Performance Monitoring**
-  - Integrate **Sentry** or **LogRocket** for real-time crash reporting and performance tracing.  
-  - Use Vercel’s built-in analytics to track request latencies and error rates.
+- **Error Tracking**: Integration with Sentry (or similar) to capture runtime errors in real time.  
+- **Performance Monitoring**: Vercel Analytics for request/latency metrics.  
+- **Logging**: Serverless logs via Vercel dashboard and optional database logs for slow queries.  
+- **Database Migrations**: Drizzle’s migration tool ensures schema updates are applied consistently.  
+- **Automated Tests**: CI pipeline runs tests on API routes and database logic to catch regressions.
 
-- **Logging**
-  - Structured logs (JSON) for all API requests and errors, shipped to a log management service like **Datadog** or **Logflare**.
-
-- **Health Checks**
-  - Define a `/health` endpoint that returns a 200 status if the service is up and the database is reachable.
-
-- **Maintenance Strategies**
-  - Automated migrations run on deploy to keep the database schema up to date.  
-  - Scheduled dependency audits and security scans (e.g., `npm audit`).
-  - Regular backups of the database (daily or weekly depending on usage).
+Maintenance tasks include regular dependency updates, reviewing Sentry alerts, and applying Drizzle migrations as the data model evolves.
 
 ## 9. Conclusion and Overall Backend Summary
 
-The backend for **codeguide-starter** is built on Next.js API Routes and Node.js, paired with PostgreSQL for data and optional Redis for caching. It follows a clear layered architecture that keeps code easy to maintain and extend. With RESTful endpoints for authentication and data, secure practices like password hashing and HTTPS, and hosting on Vercel for scalability and global performance, this setup meets the project’s goals for a fast, secure, and developer-friendly foundation. Future enhancements—such as background job queues, advanced monitoring, or richer data models—can be added without disrupting the core structure.
+The TNT Resource Finder backend is built on a modern, full-stack JavaScript stack with Next.js API routes, a type-safe ORM (Drizzle), and PostgreSQL. Docker keeps development consistent, and Vercel provides a reliable, scalable, and cost-efficient production environment. Security is enforced through Better Auth, RBAC, encryption, and rigorous validation. Monitoring tools like Sentry and Vercel Analytics ensure we can detect and resolve issues quickly. Together, these components deliver a fast, maintainable, and user-friendly backend that aligns with the project’s goals: to help teens discover and manage relevant resources through a clean, responsive interface.
