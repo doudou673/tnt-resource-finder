@@ -1,90 +1,100 @@
-# Tech Stack Document
+# Tech Stack Document for Teens in Times (TNT) Resource Finder
 
-This document explains the key technologies chosen for the **codeguide-starter** project. It’s written in everyday language so anyone—technical or not—can understand why each tool was picked and how it supports the application.
+## Frontend Technologies
 
-## 1. Frontend Technologies
-The frontend is everything the user sees and interacts with. For this project, we’ve used:
+We chose a modern, component-driven approach to make the user interface fast, consistent, and easy to maintain. Key tools include:
 
 - **Next.js (App Router)**
-  - A React framework that makes page routing, server-side rendering, and API routes very simple.
-  - Enhances user experience by pre-rendering pages on the server or at build time, leading to faster initial load.
-- **React 18**
-  - The underlying library for building user interfaces with reusable components.
-  - Provides a smooth, interactive experience thanks to its virtual DOM and modern hooks.
+  - Enables server-side rendering and client-side navigation.
+  - Improves initial load speed and SEO, so resource pages are quickly discoverable.
+- **React (v19)**
+  - Powers interactive UI elements like search inputs and buttons.
+  - Component-based structure helps us build, reuse, and test parts of the interface.
 - **TypeScript**
-  - A superset of JavaScript that adds types (labels for data).
-  - Helps catch errors early during development and makes the code easier to maintain.
-- **CSS (globals.css & theme.css)**
-  - **globals.css** applies base styles (fonts, colors, resets) across the entire app.
-  - **dashboard/theme.css** defines the look and feel specific to the dashboard area.
-  - This separation keeps styles organized and avoids accidental style conflicts.
+  - Adds type safety to our JavaScript code.
+  - Catches errors early in development, making the UI more reliable.
+- **Tailwind CSS (v4)**
+  - A utility-first styling framework that lets us build custom designs quickly.
+  - Ensures a consistent look and feel across the site without writing large CSS files.
+- **shadcn/ui**
+  - A collection of pre-built React components (inputs, tables, badges) styled with Tailwind.
+  - Accelerates UI development and keeps the design cohesive.
 
-By combining these tools, we have a clear structure (Next.js folders for pages and layouts), safer code (TypeScript), and flexible styling with vanilla CSS.
+Together, these tools let us deliver a polished, responsive search interface that works smoothly on any device.
 
-## 2. Backend Technologies
-The backend handles data, user accounts, and the logic behind the scenes. Our choices here are:
+## Backend Technologies
+
+Our backend stack focuses on type safety, secure data handling, and straightforward API development:
 
 - **Next.js API Routes**
-  - Allows us to write server-side code (`route.ts` files) alongside our frontend in the same project.
-  - Runs on Node.js, so we can handle requests like sign-up, sign-in, and data fetching in one place.
-- **Node.js Runtime**
-  - The JavaScript environment on the server that executes our API routes.
-- **bcrypt** (npm package)
-  - A library for hashing passwords securely before storing them.
-  - Ensures that even if someone got access to our data, raw passwords aren’t visible.
-- **(Optional) NextAuth.js or JWT**
-  - While this starter kit shows a custom authentication flow, it can easily integrate services like NextAuth.js for email-based login or JWT (JSON Web Tokens) for stateless sessions.
+  - Lets us write server-side endpoints directly alongside our frontend code.
+  - Handles search requests, authentication checks, and data fetching in one framework.
+- **Better Auth**
+  - Provides secure sign-up, sign-in, and session management out of the box.
+  - Simplifies role-based access control, so admins and regular users see only what they should.
+- **PostgreSQL**
+  - A reliable, open-source relational database for storing members, events, and resource links.
+  - Supports complex queries and relationships, which are key for our search features.
+- **Drizzle ORM**
+  - A type-safe database library that works seamlessly with TypeScript.
+  - Makes querying and updating PostgreSQL easy and less error-prone.
 
-These components work together to receive user credentials, verify or store them securely, manage sessions or tokens, and deliver protected data back to the frontend.
+These components work together to process user requests, protect sensitive data, and serve accurate search results.
 
-## 3. Infrastructure and Deployment
-Infrastructure covers where and how we host the app, as well as how changes get delivered:
+## Infrastructure and Deployment
 
-- **Git & GitHub**
-  - Version control system (Git) and remote hosting (GitHub) keep track of all code changes and allow team collaboration.
-- **Vercel (or Netlify)**
-  - A popular hosting service optimized for Next.js, with one-click deployments and global content delivery.
-  - Automatically rebuilds and deploys the site whenever code is pushed to the main branch.
-- **GitHub Actions (CI/CD)**
-  - Automates tasks like linting (ESLint), formatting (Prettier), and running any tests you add.
-  - Ensures that only clean, tested code goes live.
+We set up a straightforward environment that developers and operations teams can use consistently:
 
-Together, these tools provide a reliable, scalable setup where every code change is tested and deployed quickly, with minimal manual work.
+- **Docker & Docker Compose**
+  - Containerizes both the application and PostgreSQL database.
+  - Ensures every developer has the same setup without manual installations.
+- **Git (Version Control)**
+  - Tracks all changes to code and configuration files.
+  - Allows us to collaborate safely, roll back mistakes, and review each other’s work.
+- **Vercel**
+  - Hosts our Next.js app with automatic builds on every code push.
+  - Provides built-in CI/CD, so new features go live immediately after merging.
 
-## 4. Third-Party Integrations
-While this starter kit is minimal by design, it already includes or can easily add:
+This setup supports reliable deployments, easy scaling, and quick recovery if something goes wrong.
 
-- **bcrypt**
-  - For secure password hashing (included as an npm dependency).
-- **NextAuth.js** (optional)
-  - A full-featured authentication library supporting email/password, OAuth, and more.
-- **Sentry or LogRocket** (optional)
-  - For real-time error tracking and performance monitoring in production.
+## Third-Party Integrations
 
-These integrations help extend the app’s capabilities without building every feature from scratch.
+To streamline development and add battle-tested functionality, we integrate several external services:
 
-## 5. Security and Performance Considerations
-We’ve baked in several measures to keep users safe and the app running smoothly:
+- **Better Auth**
+  - Handles user authentication and session management securely.
+- **shadcn/ui**
+  - Supplies accessible, customizable UI components under the hood.
+- **Vercel**
+  - Offers hosting, SSL certificates, and a global CDN, making the app fast and secure.
 
-Security:
-- Passwords are never stored in plain text—bcrypt hashes them with a random salt.
-- API routes can implement CSRF protection and input validation to block malicious requests.
-- Session tokens or cookies are marked secure and HttpOnly to prevent theft via JavaScript.
+These integrations save development time and ensure robust performance.
 
-Performance:
-- Server-side rendering (SSR) and static site generation (SSG) in Next.js deliver pages faster.
-- Code splitting and lazy-loaded components ensure users only download what they need.
-- Global CSS and theme files are small and cached by the browser for quick repeat visits.
+## Security and Performance Considerations
 
-These strategies work together to give users a fast, secure experience every time.
+We’ve implemented multiple strategies to keep the application safe and responsive:
 
-## 6. Conclusion and Overall Tech Stack Summary
-In building **codeguide-starter**, we chose technologies that:
+- **Secure Authentication**
+  - Better Auth validates credentials and protects session data.
+  - Role-based checks prevent unauthorized access to admin features.
+- **Data Validation & Sanitization**
+  - All incoming search queries and form inputs are cleaned to prevent attacks like XSS.
+  - Drizzle ORM parameters guard against SQL injection.
+- **Server-Side Rendering & React Server Components**
+  - Fetching data on the server reduces client work and speeds up page loads.
+  - Improves SEO by delivering fully rendered pages to search engines.
+- **Type Safety**
+  - TypeScript and Drizzle ORM ensure that data structures match expected shapes, catching bugs at compile time.
 
-- Align with modern web standards (Next.js, React, TypeScript).
-- Provide a clear, file-based project structure for rapid onboarding.
-- Offer built-in support for server-side rendering, API routes, and static assets.
-- Emphasize security through password hashing, session management, and safe defaults.
-- Enable easy scaling and future enhancements via modular code and optional integrations.
+Together, these measures keep user data protected and pages loading quickly.
 
-This stack strikes a balance between simplicity for newcomers and flexibility for experienced teams. It accelerates development of a secure authentication flow and a polished dashboard, while leaving room to plug in databases, test suites, and advanced features as the project grows.
+## Conclusion and Overall Tech Stack Summary
+
+Our chosen stack balances developer productivity, user experience, and long-term maintainability:
+
+- Next.js with React and TypeScript for a fast, interactive frontend.
+- Tailwind CSS and shadcn/ui for quick, consistent styling.
+- Next.js API Routes, Better Auth, PostgreSQL, and Drizzle ORM for a secure, type-safe backend.
+- Docker and Vercel for reliable development environments and seamless deployments.
+
+This combination aligns perfectly with the TNT Resource Finder’s goals: to provide a responsive, searchable library of resources, secure user access, and an easy-to-manage codebase for future growth.
